@@ -1,19 +1,8 @@
-variable "region" {
-  default = "us-east-1"
-  type    = string
-}
+variable "AWS_REGION" { default = "t" }
+variable "AWS_VPC_ID" { default = "t" }
+variable "AWS_BGP" { default = "t" }
+variable "GCP_BGP" { default = "t" }
 
-variable "vpc_cidr" {
-  default = "10.1.0.0/16"
-  type    = string
-}
-
-variable "subnet_cidr" {
-  default = "10.1.0.0/24"
-  type    = string
-}
-
-variable "subnet_az" {
-  default = "us-east-1a"
-  type    = string
-}
+variable "GCP_PROJECT" { default = "t" }
+variable "GCP_REGION" { default = "t" }
+variable "GCP_VPC_NAME" { default = "t" }

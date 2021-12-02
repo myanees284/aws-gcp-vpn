@@ -1,30 +1,19 @@
-#provider tells terraform which cloud provider to use
-provider "aws" {
-  region = var.region
+module "fetchAWS_VPC_RTB" {
+  source           = "digitickets/cli/aws"
+  version          = "4.0.0"
+  aws_cli_commands = ["ec2", "describe-route-tables --filters Name=vpc-id,Values=${var.AWS_VPC_ID}"]
+  aws_cli_query    = "'RouteTables[0].Associations[0].RouteTableId'"
 }
 
-resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr
-  instance_tenancy     = "default"
-  enable_dns_hostnames = true
-
-  tags = {
-    Name = "vpc-aws-gcp-vpn"
-  }
-}
-
-resource "aws_subnet" "public" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = var.subnet_cidr
-  availability_zone = var.subnet_az
-
-  tags = {
-    Name = "subnet-us-east-1"
-  }
+module "fetchAWS_VPC_Subnet" {
+  source           = "digitickets/cli/aws"
+  version          = "4.0.0"
+  aws_cli_commands = ["ec2", "describe-subnets --filters Name=vpc-id,Values=${var.AWS_VPC_ID}"]
+  aws_cli_query    = "'Subnets[*].SubnetId'"
 }
 
 resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
+  vpc_id = var.AWS_VPC_ID
 
   tags = {
     Name = "IGW"
@@ -32,7 +21,7 @@ resource "aws_internet_gateway" "igw" {
 }
 
 resource "aws_default_route_table" "example" {
-  default_route_table_id = aws_vpc.main.main_route_table_id
+  default_route_table_id = local.vpc_1_RTBid
   propagating_vgws       = [aws_vpn_gateway.vpn_gw.id]
   route {
     cidr_block = "0.0.0.0/0"
@@ -45,13 +34,13 @@ resource "aws_default_route_table" "example" {
 }
 
 resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
+  subnet_id      = local.vpc_1_subnetids[0]
   route_table_id = aws_default_route_table.example.id
   depends_on     = [aws_default_route_table.example]
 }
 
 resource "aws_customer_gateway" "acg_1" {
-  bgp_asn    = 65420
+  bgp_asn    = var.GCP_BGP
   ip_address = google_compute_ha_vpn_gateway.ha_gateway1.vpn_interfaces[0].ip_address
   type       = "ipsec.1"
 
@@ -62,7 +51,7 @@ resource "aws_customer_gateway" "acg_1" {
 }
 
 resource "aws_customer_gateway" "acg_2" {
-  bgp_asn    = 65420
+  bgp_asn    = var.GCP_BGP
   ip_address = google_compute_ha_vpn_gateway.ha_gateway1.vpn_interfaces[1].ip_address
   type       = "ipsec.1"
 
@@ -73,8 +62,8 @@ resource "aws_customer_gateway" "acg_2" {
 }
 
 resource "aws_vpn_gateway" "vpn_gw" {
-  vpc_id          = aws_vpc.main.id
-  amazon_side_asn = 64512
+  vpc_id          = var.AWS_VPC_ID
+  amazon_side_asn = var.AWS_BGP
 
   tags = {
     Name = "vpg-aws-gcp"
