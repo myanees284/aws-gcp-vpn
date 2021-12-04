@@ -15,7 +15,6 @@ resource "google_compute_firewall" "allow_icmp_ssh" {
 resource "google_compute_router" "cloudrouter" {
   name    = "cloud-router-aws-gcp-vpn"
   network = var.GCP_VPC_NAME
-  region  = "us-east1"
   bgp {
     asn = var.GCP_BGP
   }
